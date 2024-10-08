@@ -4,33 +4,46 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 //=================================================================================
-[RequireComponent(typeof(Rigidbody2D))]
+[RequireComponent(typeof(Rigidbody2D), typeof(TouchingDirections))]
 public class PlayerController : MonoBehaviour
 //==================================================================================
 {
     public float walkSpeed = 5f;
     public float runspeed = 8f;
+    public float jumpImpulse = 1f;
+    public float airWalkSpeed = 4f;
     Vector2 moveInput;
+    TouchingDirections touchingDirections;
 
-    public float CurrentMoveSpeed { get
+    public float CurrentMoveSpeed
+    {
+        get
         {
-            if(IsMoving)
+            if (IsMoving && !touchingDirections.IsOnWall)
             {
-                if(IsRunning)
+                if (touchingDirections.IsGrounded)
                 {
-                    return runspeed;
-                } else
-                {
-                    return walkSpeed;
+                    if (IsRunning)
+                    {
+                        return runspeed;
+                    }
+                    else
+                    {
+                        return walkSpeed;
+                    }
                 }
-            } else
+                else
+                {
+                    return airWalkSpeed;
+                }
+            }
+            else
             {
-                //Idle speed is 0
                 return 0;
             }
         }
-
-        }
+    }
+    
 
     [SerializeField]
     private bool _isMoving = false;
@@ -83,22 +96,17 @@ public class PlayerController : MonoBehaviour
     {
         rb = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
+        touchingDirections = GetComponent<TouchingDirections>();
     }
 
 // ==================================================================================
-    void Start()
-    {
-        
-    }
-//===================================================================================
-    void Update()
-    {
-        
-    }
+
 //===================================================================================
     private void FixedUpdate()
     {
         rb.velocity = new Vector2(moveInput.x * CurrentMoveSpeed, rb.velocity.y);
+        animator.SetFloat(AnimationStrings.yVelocity, rb.velocity.y);
+        
 
     }
 //====================================================================================
@@ -136,4 +144,14 @@ public class PlayerController : MonoBehaviour
         }
     }
 //=====================================================================================
+//Jumping
+    public void OnJump(InputAction.CallbackContext context)
+    {
+        // TODO check if alive too
+        if(context.started && touchingDirections.IsGrounded)
+        {
+            animator.SetTrigger(AnimationStrings.jump);
+            rb.velocity = new Vector2(rb.velocity.x, jumpImpulse);
+        }
+    }
 }
